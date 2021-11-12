@@ -1,6 +1,10 @@
-# Insert chapter 2 title here
+# Regression and model validation
 
-*Describe the work you have done this week and summarize your learning.*
+
+Data of this study includes basic information about the students of a statistic course, their attitude, different kind of learning types and academic success. Data are available from 166 students. Questions considering different learning types have been combined into combination variables called deep, surface and strategic learning. Other variables are gender, age, attitude and exam points.
+
+
+
 
 - Describe your work and results clearly. 
 - Assume the reader has an introductory course level understanding of writing and reading R code as well as statistical methods.
@@ -8,6 +12,50 @@
 
 ```{r}
 date()
+lrn14 <- read.csv("learning2014.csv")
+lrn14
+library(dplyr)
+keep_columns <- c("gender","Age","Attitude", "deep", "stra", "surf", "Points")
+learning2014 <- select(lrn14, one_of(keep_columns))
+str(learning2014)
+dim(learning2014)
+colnames(learning2014)[2] <- "age"
+colnames(learning2014)[3] <- "attitude"
+colnames(learning2014)[7] <- "points"
+colnames(learning2014)
+summary(learning2014)
+library(ggplot2)
+
+# boxplot about gender and points
+
+qplot(gender, points, data=learning2014, geom="boxplot", fill=gender)
+
+# scatterplot of points and attitude
+qplot(attitude, points, data = learning2014)
+
+# scatterplot matrix of all variables
+
+library(GGally)
+library(ggplot2)
+p <- ggpairs(learning2014, mapping = aes(col = gender), lower = list(combo = wrap("facethist", bins = 20)))
+p
+
+#Regression model
+
+my_model2 <- lm(points ~ attitude + stra + surf, data = learning2014)
+summary(my_model2)
+
+my_model2 <- lm(points ~ attitude + deep + age, data = learning2014)
+summary(my_model2)
+
+my_model2 <- lm(points ~ attitude, data = learning2014)
+summary(my_model2)
+
+my_model2 <- lm(points ~ attitude + stra, data = learning2014)
+summary(my_model2)
+
+plot(my_model2, which = c(1,2,5))
 ```
+
 
 Here we go again...

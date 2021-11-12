@@ -9,13 +9,5 @@ What do I expect to learn?
 1. I really don't know!  
 2. I hope to learn something completely new for me.
 
-[linked phrase] (https://github.com/EmmiD/IODS-project)
-
-```{r}
-# This is a so-called "R chunk" where you can write R code.
-
-date()
-
-```
-The text continues here.
+https://github.com/EmmiD/IODS-project
 
