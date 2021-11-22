@@ -6,6 +6,7 @@
 library(dplyr)
 library(ggplot2)
 library(tidyr)
+library(gmodels)
 ```
 
 Data of this study are combined from two datasets: one regarding the performance in mathematics and other in Portuguese language. Data is collected from two Portuguese secondary schools. It includes student grades, social and school related features together with alcohol consumption.
@@ -29,6 +30,15 @@ g2 + geom_boxplot()
 #boxplot high use and absences
 g4 <- ggplot(pormath, aes(x = high_use, y = absences, col = sex))
 g4 + geom_boxplot()
+
+#crosstable high use and sex
+CrossTable(pormath$high_use, pormath$sex)
+
+#crosstable high use and "higher"
+CrossTable(pormath$high_use, pormath$higher)
+
 ```
+
+From the boxplots I can see that students who go often out, are significantly more often high users of alcohol, specially men. Same trend can be seen in absences. In crosstabs high_use and sex, we can see that OR is 2,5 in male compared to female.
 
 KESKEN, NOT FINISHED
