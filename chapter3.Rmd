@@ -39,6 +39,26 @@ CrossTable(pormath$high_use, pormath$higher)
 
 ```
 
-From the boxplots I can see that students who go often out, are significantly more often high users of alcohol, specially men. Same trend can be seen in absences. In crosstabs high_use and sex, we can see that OR is 2,5 in male compared to female.
+From the boxplots I can see that students who go often out, are significantly more often high users of alcohol, specially men. Same trend can be seen in absences. In crosstabs high_use and sex, we can see that OR is 2,5 in male compared to female, supporting my hypothesis. The number of student not willing to educate higher is so small, that it is not possible to do predictions according to that information.
+
+```{r}
+
+m <- glm(high_use ~ goout + absences + sex + higher, data = pormath, family = "binomial")
+
+summary(m)
+
+OR <- coef(m) %>% exp
+
+CI <- confint(m) %>% exp
+
+cbind(OR, CI)
+```
+Students who go out often, are significantly more often high users of alcohol (OR 2.1, confidence interval 1.6-2.6)
+
+Students who have lots of abcences are also more often high users (OR 1.09, CI 1.05-1.14), but the influence of absences is not that big as the influence of going out.
+
+Male students are significantly more often high users than female (OR 2.7, CI 1.6-4.5)
+
+There is no significant difference in alcohol use between students who want to educate higher or lower (OR 0.6, CI 0.2-2.0)
 
 KESKEN, NOT FINISHED

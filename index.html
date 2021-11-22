@@ -455,7 +455,51 @@ CrossTable(pormath$high_use, pormath$higher)</code></pre>
 ## -----------------|-----------|-----------|-----------|
 ## 
 ## </code></pre>
-<p>From the boxplots I can see that students who go often out, are significantly more often high users of alcohol, specially men. Same trend can be seen in absences. In crosstabs high_use and sex, we can see that OR is 2,5 in male compared to female.</p>
+<p>From the boxplots I can see that students who go often out, are significantly more often high users of alcohol, specially men. Same trend can be seen in absences. In crosstabs high_use and sex, we can see that OR is 2,5 in male compared to female, supporting my hypothesis. The number of student not willing to educate higher is so small, that it is not possible to do predictions according to that information.</p>
+<pre class="r"><code>m &lt;- glm(high_use ~ goout + absences + sex + higher, data = pormath, family = &quot;binomial&quot;)
+
+summary(m)</code></pre>
+<pre><code>## 
+## Call:
+## glm(formula = high_use ~ goout + absences + sex + higher, family = &quot;binomial&quot;, 
+##     data = pormath)
+## 
+## Deviance Residuals: 
+##     Min       1Q   Median       3Q      Max  
+## -1.7787  -0.8120  -0.5286   0.7990   2.4772  
+## 
+## Coefficients:
+##             Estimate Std. Error z value Pr(&gt;|z|)    
+## (Intercept) -3.67317    0.77959  -4.712 2.46e-06 ***
+## goout        0.72110    0.12093   5.963 2.48e-09 ***
+## absences     0.08279    0.02289   3.617 0.000298 ***
+## sexM         0.99134    0.26216   3.781 0.000156 ***
+## higheryes   -0.48263    0.59294  -0.814 0.415674    
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## (Dispersion parameter for binomial family taken to be 1)
+## 
+##     Null deviance: 452.04  on 369  degrees of freedom
+## Residual deviance: 373.43  on 365  degrees of freedom
+## AIC: 383.43
+## 
+## Number of Fisher Scoring iterations: 4</code></pre>
+<pre class="r"><code>OR &lt;- coef(m) %&gt;% exp
+
+CI &lt;- confint(m) %&gt;% exp</code></pre>
+<pre><code>## Waiting for profiling to be done...</code></pre>
+<pre class="r"><code>cbind(OR, CI)</code></pre>
+<pre><code>##                     OR       2.5 %    97.5 %
+## (Intercept) 0.02539593 0.005295764 0.1144689
+## goout       2.05669840 1.631954118 2.6247236
+## absences    1.08631589 1.040394135 1.1392604
+## sexM        2.69484233 1.621899762 4.5434069
+## higheryes   0.61716027 0.185899096 1.9580038</code></pre>
+<p>Students who go out often, are significantly more often high users of alcohol (OR 2.1, confidence interval 1.6-2.6)</p>
+<p>Students who have lots of abcences are also more often high users (OR 1.09, CI 1.05-1.14), but the influence of absences is not that big as the influence of going out.</p>
+<p>Male students are significantly more often high users than female (OR 2.7, CI 1.6-4.5)</p>
+<p>There is no significant difference in alcohol use between students who want to educate higher or lower (OR 0.6, CI 0.2-2.0)</p>
 <p>KESKEN, NOT FINISHED</p>
 <hr />
 <p>(more chapters to be added similarly as we proceed with the course!)</p>
