@@ -1,0 +1,139 @@
+# Clustering and classification
+
+```{r}
+#libraries needed
+library(MASS)
+library(tidyr)
+library(corrplot)
+library(qqplotr)
+```
+
+This data called "Boston" are about housing values in suburbs of Boston. In the columns you can find information about the crime rate in town, distances from employment centres, accessibility and socioeconomical differences in town, for example. Boston data frame has 506 rowns and 14 columns. The dimensions and the structure of the data are described below.
+
+```{r}
+data("Boston")
+str(Boston)
+dim(Boston)
+```
+Summaries of the variables are shown below.
+
+There are a strong positive correlation between *rad* and *tax*, *medv* and *rm*, *nox* and *age*, *indus* and *nox*, and *indus* and *tax*. There are a strong negative correlation between *indus* and *dis*, *nox* and *dis*, *age* and *dis*, *lstat* and *medv*.
+
+```{r}
+summary(Boston)
+pairs(Boston)
+
+cor_matrix<-cor(Boston) %>% round(digits = 2)
+cor_matrix
+corrplot(cor_matrix, method="circle", type="upper", cl.pos="b", tl.pos="d", tl.cex = 0.6)
+```
+
+
+```{r}
+
+#I standardized the dataset and printed out summaries of the scaled data
+
+boston_scaled <- scale(Boston)
+summary(boston_scaled)
+
+# I created a categorical variable of the crime rate in the Boston dataset. I used the quantiles as the break points in the categorical variable.
+
+class(boston_scaled)
+boston_scaled <- as.data.frame(boston_scaled)
+bins <- quantile(boston_scaled$crim)
+crime <- cut(boston_scaled$crim, breaks = bins, include.lowest = TRUE, labels = c("low", "med_low", "med_high", "high"))
+table(crime)
+
+# I dropped the old crime rate variable from the dataset and added the new categorical value to scaled data.
+
+boston_scaled <- dplyr::select(boston_scaled, -crim)
+boston_scaled <- data.frame(boston_scaled, crime)
+
+# I divided the dataset to train and test sets, so that 80% of the data belongs to the train set.I also saved the crime categories from the test set and removed the categorical crime variable from the test data.
+
+n <- nrow(boston_scaled)
+ind <- sample(n,  size = n * 0.8)
+train <- boston_scaled[ind,]
+test <- boston_scaled[-ind,]
+correct_classes <- test$crime
+test <- dplyr::select(test, -crime)
+
+```
+
+I fit the linear discriminant analysis on the train set using the categorical crime rate as the target variable and all the other variables in the dataset as predictor variables.
+
+```{r}
+lda.fit <- lda(crime ~ ., data = train)
+lda.arrows <- function(x, myscale = 1, arrow_heads = 0.1, color = "red", tex = 0.75, choices = c(1,2)){
+  heads <- coef(x)
+  arrows(x0 = 0, y0 = 0, 
+         x1 = myscale * heads[,choices[1]], 
+         y1 = myscale * heads[,choices[2]], col=color, length = arrow_heads)
+  text(myscale * heads[,choices], labels = row.names(heads), 
+       cex = tex, col=color, pos=3)
+}
+classes <- as.numeric(train$crime)
+
+plot(lda.fit, dimen = 2, col = classes, pch = classes)
+lda.arrows(lda.fit, myscale = 2)
+```
+
+Above I saved the crime categories from the test set and then removed the categorical crime variable from the test dataset. 
+
+Now I predict the classes with the LDA model on the test data.
+```{r}
+lda.pred <- predict(lda.fit, newdata = test)
+table(correct = correct_classes, predicted = lda.pred$class)
+
+```
+We can see, that this model was good predicting high crime rate, which it did perfectly. Other classes were not that well predicted. In other classes around 20 % of cases were predicted in wrong class.
+
+```{r}
+# I reloaded the Boston dataset and standardized it.
+
+data("Boston")
+boston_scaled <- scale(Boston)
+boston_scaled <- as.data.frame(boston_scaled)
+
+# I calculated the distances between observations 
+dist_eu <- dist(boston_scaled)
+dist_man <- dist(Boston, method = 'manhattan')
+summary(dist_man)
+
+# I ran k-means algorithm on the data.
+
+km <-kmeans(boston_scaled, centers = 3)
+pairs(boston_scaled, col = km$cluster)
+
+set.seed(123)
+k_max <- 10
+twcss <- sapply(1:k_max, function(k){kmeans(boston_scaled, k)$tot.withinss})
+qplot(x = 1:k_max, y = twcss, geom = 'line')
+
+km <-kmeans(boston_scaled, centers = 2)
+pairs(boston_scaled, col = km$cluster)
+
+pairs(boston_scaled[1:6], col = km$cluster)
+
+```
+
+I found the optimal number of clusters 2.
+
+Finally, a small test with the code provided in Super-Bonus - exercise.
+
+```{r}
+library(plotly)
+
+model_predictors <- dplyr::select(train, -crime)
+
+# check the dimensions
+dim(model_predictors)
+dim(lda.fit$scaling)
+
+# matrix multiplication
+matrix_product <- as.matrix(model_predictors) %*% lda.fit$scaling
+matrix_product <- as.data.frame(matrix_product)
+
+plot_ly(x = matrix_product$LD1, y = matrix_product$LD2, z = matrix_product$LD3, type= 'scatter3d', mode='markers')
+
+```
