@@ -1,0 +1,195 @@
+# Analysis of longitudinal data
+
+```{r}
+#libraries needed
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(lme4)
+
+```
+
+I read the BPRS and RATS (wide form) and BPRSL and RATSL (long form) and check if they are ok.
+
+```{r}
+BPRS <- read.table("https://raw.githubusercontent.com/KimmoVehkalahti/MABS/master/Examples/data/BPRS.txt", sep = " ", header = T)
+RATS <- read.table("https://raw.githubusercontent.com/KimmoVehkalahti/MABS/master/Examples/data/rats.txt", sep = "\t", header = TRUE)
+
+BPRSL <- read.csv("BPRSL.csv")
+RATSL <- read.csv("RATSL.csv")
+glimpse(BPRSL)
+glimpse(RATSL)
+
+BPRS$treatment <- factor(BPRS$treatment)
+BPRS$subject <- factor(BPRS$subject)
+BPRSL$treatment <- factor(BPRSL$treatment)
+BPRSL$subject <- factor(BPRSL$subject)
+glimpse(BPRSL)
+glimpse(BPRS)
+
+RATS$ID <- factor(RATS$ID)
+RATS$Group <- factor(RATS$Group)
+RATSL$ID <- factor(RATSL$ID)
+RATSL$Group <- factor(RATSL$Group)
+glimpse(RATSL)
+glimpse(BPRS)
+```
+
+**1** Analysis of the RATS data.
+
+Below you can see individual weight gaining profiles by diet group for the RATS data.
+ 
+```{r}
+ggplot(RATSL, aes(x = Time, y = Weight, linetype = ID)) +
+  geom_line() +
+  scale_linetype_manual(values = rep(1:10, times=4)) +
+  facet_grid(. ~ Group, labeller = label_both) +
+  theme(legend.position = "none") + 
+  scale_y_continuous(limits = c(min(RATSL$Weight), max(RATSL$Weight)))
+```
+
+Almost all the rats are gaining weight during the study. The rats in group one are *very* much lighter throughout the study, also in the beginnig. In every group, there is one rat, which differs from the other rats (an outlier).
+
+Next, I will standardize the variable Weight and plot again after standardization.
+
+```{r}
+RATSL <- RATSL %>%
+  group_by(Time) %>%
+  mutate(stdWeight = (Weight - mean(Weight))/sd(Weight) ) %>%
+  ungroup()
+
+ggplot(RATSL, aes(x = Time, y = stdWeight, linetype = ID)) +
+  geom_line() +
+  scale_linetype_manual(values = rep(1:10, times=4)) +
+  facet_grid(. ~ Group, labeller = label_both) +
+  theme(legend.position = "none") + 
+  scale_y_continuous(name = "Standardized Weight")
+
+```
+
+The next step is to do the summary measure analysis of RATSL data
+
+```{r}
+#number of individuals in group 1 is **8** and in group 2 and 3 **4**
+#I don't know how to deal with that.
+
+n <- 4
+
+RATSS <- RATSL %>%
+  group_by(Group, Time) %>%
+  summarise( mean = mean(Weight), se = sd(Weight)/sqrt(n) ) %>%
+  ungroup()
+
+ggplot(RATSS, aes(x = Time, y = mean, linetype = Group, shape = Group)) +
+  geom_line() +
+  scale_linetype_manual(values = c(1,2,3)) +
+  geom_point(size=3) +
+  scale_shape_manual(values = c(1,2,3)) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se, linetype="1"), width=0.3) +
+  theme(legend.position = c(0.8,0.8,0.8)) +
+  scale_y_continuous(name = "mean(Weight) +/- se(Weight)")
+
+```
+
+Above you can see the mean response profiles for the three diet groups in the RATS data. Unfortunately, there is something wrong with this figure.
+
+Let's try something else.
+
+```{r}
+# I create a summary data by diet group and subject(ID) with mean as the summary variable
+
+RATSL10S <- RATSL %>%
+  filter(Time > 1) %>%
+  group_by(Group, ID) %>%
+  summarise( mean=mean(Weight) ) %>%
+  ungroup()
+
+glimpse(RATSL10S)
+
+#...and draw a boxplot of the mean versus diet group
+
+ggplot(RATSL10S, aes(x = Group, y = mean)) +
+  geom_boxplot() +
+  stat_summary(fun.y = "mean", geom = "point", shape=23, size=4, fill = "white") +
+  scale_y_continuous(name = "mean(Weight), days 1-64")
+```
+
+Above you can see boxplots of mean summary measures for the three diet groups. There is an outlier in every group, as earlier seen.
+
+**Summary:** The rats (n=8) in the group 1 are much smaller than the rats in the group 2 (n=4) and 3 (n=4). Almost all the rats gained weight during the study. There's an outlier in each group.
+
+
+**2** Analysis of the BPRS data.
+
+```{r}
+ggplot(BPRSL, aes(x = week, y = bprs, group = subject)) + 
+  geom_line() +
+  scale_x_continuous(name = "Time (weeks)", breaks = seq(0, 8, 2))+
+    
+  scale_y_continuous(name = "BPRS (points)") +
+  theme(legend.position = "top")
+
+ggplot(BPRSL, aes(x = week, y = bprs, linetype = subject)) +
+  geom_line() +
+  scale_linetype_manual(values = rep(1:10, times=4)) +
+  facet_grid(. ~ treatment, labeller = label_both) +
+  theme(legend.position = "none") + 
+  scale_y_continuous(limits = c(min(BPRSL$bprs), max(BPRSL$bprs)))
+  
+```
+
+Below are the results from fitting *a linear regression model* to BPRS data with BPRS-points as response variable and treatment and week as explanatory variables. 
+
+```{r}
+BPRS_reg <- lm(bprs ~ week + treatment, data = BPRSL)
+summary(BPRS_reg)
+```
+
+And the next step, below the results from fitting *a random intercept model* to BPRS data with week and treatment as explanatory variables.
+
+```{r}
+BPRS_ref <- lmer(bprs ~ week + treatment + (1 | subject), data = BPRSL, REML = FALSE)
+summary(BPRS_ref)
+```
+
+Below *a random intercept and random slope model* and *an ANOVA test* on the two models.
+
+```{r}
+BPRS_ref1 <- lmer(bprs ~ week + treatment + (week | subject), data = BPRSL, REML = FALSE)
+summary(BPRS_ref1)
+anova(BPRS_ref1, BPRS_ref)
+```
+
+p-value of the likelihood ratio test is 0.02636. The value is low meaning a good fit against the comparison model.
+
+
+Below *a random intercept and random slope model with the interaction* and *an ANOVA test* on the two latest models.
+
+```{r}
+BPRS_ref2 <- lmer(bprs ~ week + treatment + (week | subject) + week * treatment, data = BPRSL, REML = FALSE)
+summary(BPRS_ref2)
+anova(BPRS_ref2, BPRS_ref1)
+```
+
+The next step is to create *fitted BPRS profiles from the interaction model*.
+
+```{r}
+Fitted <- fitted(BPRS_ref2)
+BPRSL <- BPRSL %>%
+  mutate(Fitted)
+
+ggplot(BPRSL, aes(x = week, y = Fitted, group = subject)) +
+  geom_line() +
+  scale_x_continuous(name = "Time (weeks)", breaks = seq(0, 8, 2)) +
+  scale_y_continuous(name = "Fitted BRPS (points)") +
+  theme(legend.position = "top")
+
+ggplot(BPRSL, aes(x = week, y = Fitted, linetype = subject)) +
+  geom_line() +
+  scale_linetype_manual(values = rep(1:10, times=4)) +
+  facet_grid(. ~ treatment, labeller = label_both) +
+  theme(legend.position = "none") + 
+  scale_y_continuous(limits = c(min(BPRSL$bprs), max(BPRSL$bprs)))
+```
+
+**Summary:** During the study BPRSL points decreased in both groups. There were no significant difference between treatments.
